@@ -17,8 +17,10 @@
 
 package de.schildbach.wallet.ui.preference;
 
+import android.Manifest;
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothManager;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
@@ -26,6 +28,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.os.PowerManager;
 import android.os.Process;
 import android.preference.EditTextPreference;
 import android.preference.ListPreference;
@@ -38,6 +41,7 @@ import android.text.Html;
 import android.text.InputFilter;
 import android.text.Spanned;
 import android.text.TextWatcher;
+import androidx.core.content.ContextCompat;
 import com.google.common.net.HostAndPort;
 import de.schildbach.wallet.Configuration;
 import de.schildbach.wallet.Constants;
@@ -59,6 +63,8 @@ public final class SettingsFragment extends PreferenceFragment implements OnPref
     private WalletApplication application;
     private Configuration config;
     private PackageManager pm;
+    private PowerManager powerManager;
+    private BluetoothManager bluetoothManager;
 
     private final Handler handler = new Handler();
     private HandlerThread backgroundThread;
@@ -80,6 +86,8 @@ public final class SettingsFragment extends PreferenceFragment implements OnPref
         this.application = (WalletApplication) activity.getApplication();
         this.config = application.getConfiguration();
         this.pm = activity.getPackageManager();
+        this.powerManager = activity.getSystemService(PowerManager.class);
+        this.bluetoothManager = activity.getSystemService(BluetoothManager.class);
     }
 
     @Override
@@ -119,6 +127,13 @@ public final class SettingsFragment extends PreferenceFragment implements OnPref
                 Uri.parse("package:" + application.getPackageName())));
         if (dataUsagePreference.getIntent() == null || pm.resolveActivity(dataUsagePreference.getIntent(), 0) == null)
             removeOrDisablePreference(dataUsagePreference);
+
+        final Preference batteryOptimizationPreference = findPreference(Configuration.PREFS_KEY_BATTERY_OPTIMIZATION);
+        if (ContextCompat.checkSelfPermission(activity, Manifest.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS) == PackageManager.PERMISSION_GRANTED)
+            batteryOptimizationPreference.setIntent(new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                    Uri.parse("package:" + application.getPackageName())));
+        if (powerManager.isIgnoringBatteryOptimizations(application.getPackageName()) || pm.resolveActivity(batteryOptimizationPreference.getIntent(), 0) == null)
+            removeOrDisablePreference(batteryOptimizationPreference);
 
         final Preference notificationsPreference = findPreference(Configuration.PREFS_KEY_NOTIFICATIONS);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
@@ -218,7 +233,7 @@ public final class SettingsFragment extends PreferenceFragment implements OnPref
     }
 
     private void updateBluetoothAddress() {
-        final BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        final BluetoothAdapter bluetoothAdapter = bluetoothManager.getAdapter();
         if (bluetoothAdapter != null) {
             String bluetoothAddress = Bluetooth.getAddress(bluetoothAdapter);
             if (bluetoothAddress == null)

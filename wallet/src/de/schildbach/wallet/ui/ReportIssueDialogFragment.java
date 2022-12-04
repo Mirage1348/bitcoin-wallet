@@ -21,7 +21,7 @@ import android.app.ActivityManager;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.admin.DevicePolicyManager;
-import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothManager;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.pm.PackageInfo;
@@ -29,6 +29,7 @@ import android.content.res.Resources;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.PowerManager;
 import android.widget.Button;
 import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.FragmentManager;
@@ -89,6 +90,7 @@ public class ReportIssueDialogFragment extends DialogFragment {
 
     private AbstractWalletActivity activity;
     private WalletApplication application;
+    private PowerManager powerManager;
 
     private Button positiveButton;
 
@@ -101,6 +103,7 @@ public class ReportIssueDialogFragment extends DialogFragment {
         super.onAttach(context);
         this.activity = (AbstractWalletActivity) context;
         this.application = activity.getWalletApplication();
+        this.powerManager = activity.getSystemService(PowerManager.class);
     }
 
     @Override
@@ -227,6 +230,9 @@ public class ReportIssueDialogFragment extends DialogFragment {
             report.append("Installer: ").append(installer.displayName).append(" (").append(installerPackageName).append(")\n");
         else
             report.append("Installer: unknown\n");
+        final boolean isIgnoringBatteryOptimization =
+                powerManager.isIgnoringBatteryOptimizations(application.getPackageName());
+        report.append("Battery optimization: ").append(isIgnoringBatteryOptimization ? "no" : "yes").append("\n");
         report.append("Timezone: ").append(TimeZone.getDefault().getID()).append("\n");
         calendar.setTimeInMillis(System.currentTimeMillis());
         report.append("Current time: ").append(String.format(Locale.US, "%tF %tT %tZ", calendar, calendar, calendar)).append("\n");
@@ -318,9 +324,8 @@ public class ReportIssueDialogFragment extends DialogFragment {
     private static void appendDeviceInfo(final Appendable report, final Context context) throws IOException {
         final Resources res = context.getResources();
         final android.content.res.Configuration config = res.getConfiguration();
-        final ActivityManager activityManager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
-        final DevicePolicyManager devicePolicyManager = (DevicePolicyManager) context
-                .getSystemService(Context.DEVICE_POLICY_SERVICE);
+        final ActivityManager activityManager = context.getSystemService(ActivityManager.class);
+        final DevicePolicyManager devicePolicyManager = context.getSystemService(DevicePolicyManager.class);
 
         report.append("Manufacturer: ").append(Build.MANUFACTURER).append("\n");
         report.append("Device Model: ").append(Build.MODEL).append("\n");
@@ -343,14 +348,15 @@ public class ReportIssueDialogFragment extends DialogFragment {
                 .append(String.valueOf(activityManager.getLargeMemoryClass()))
                 .append(activityManager.isLowRamDevice() ? " (low RAM device)" : "").append("\n");
         report.append("Storage Encryption Status: ").append(String.valueOf(devicePolicyManager.getStorageEncryptionStatus())).append("\n");
-        report.append("Bluetooth MAC: ").append(bluetoothMac()).append("\n");
+        report.append("Bluetooth MAC: ").append(bluetoothMac(context)).append("\n");
         report.append("Runtime: ").append(System.getProperty("java.vm.name")).append(" ")
                 .append(System.getProperty("java.vm.version")).append("\n");
     }
 
-    private static String bluetoothMac() {
+    private static String bluetoothMac(final Context context) {
         try {
-            return Bluetooth.getAddress(BluetoothAdapter.getDefaultAdapter());
+            final BluetoothManager bluetoothManager = context.getSystemService(BluetoothManager.class);
+            return Bluetooth.getAddress(bluetoothManager.getAdapter());
         } catch (final Exception x) {
             return x.getMessage();
         }

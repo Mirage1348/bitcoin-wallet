@@ -129,7 +129,7 @@ public final class Constants {
 
     /** Donation address for tip/donate action. */
     public static final String DONATION_ADDRESS = NETWORK_PARAMETERS.getId().equals(NetworkParameters.ID_MAINNET)
-            ? "bc1qgm3m0qg0sxggd0klauec5wradqyd66ydrrwy3f" : null;
+            ? "bc1qz54qjfmpy3hpxkahuj893lm32yvptaah8rvwvz" : null;
 
     /** Recipient e-mail address for reports. */
     public static final String REPORT_EMAIL = "bitcoin.wallet.developers@gmail.com";
@@ -176,8 +176,8 @@ public final class Constants {
     /** A balance above this amount will cause the donate option to be shown */
     public static final Coin SOME_BALANCE_THRESHOLD = Coin.COIN.divide(1600);
 
-    public static final int SDK_DEPRECATED_BELOW = Build.VERSION_CODES.N;
-    public static final String SECURITY_PATCH_INSECURE_BELOW = "2020-10-01";
+    public static final int SDK_DEPRECATED_BELOW = Build.VERSION_CODES.O;
+    public static final String SECURITY_PATCH_INSECURE_BELOW = "2021-07-01";
 
     public static final int NOTIFICATION_ID_CONNECTIVITY = 1;
     public static final int NOTIFICATION_ID_COINS_RECEIVED = 2;
